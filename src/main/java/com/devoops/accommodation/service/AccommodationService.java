@@ -5,17 +5,15 @@ import com.devoops.accommodation.dto.request.CreateAccommodationRequest;
 import com.devoops.accommodation.dto.request.UpdateAccommodationRequest;
 import com.devoops.accommodation.dto.response.AccommodationResponse;
 import com.devoops.accommodation.entity.Accommodation;
-import com.devoops.accommodation.entity.Amenity;
-import com.devoops.accommodation.entity.AmenityType;
 import com.devoops.accommodation.exception.AccommodationNotFoundException;
 import com.devoops.accommodation.exception.ForbiddenException;
 import com.devoops.accommodation.mapper.AccommodationMapper;
 import com.devoops.accommodation.repository.AccommodationRepository;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,7 +23,6 @@ public class AccommodationService {
 
     private final AccommodationRepository accommodationRepository;
     private final AccommodationMapper accommodationMapper;
-    private final EntityManager entityManager;
 
     @Transactional
     public AccommodationResponse create(CreateAccommodationRequest request, UserContext userContext) {
@@ -35,13 +32,10 @@ public class AccommodationService {
         accommodation.setHostId(userContext.userId());
 
         if (request.amenities() != null) {
-            for (AmenityType type : request.amenities()) {
-                Amenity amenity = Amenity.builder().type(type).build();
-                accommodation.addAmenity(amenity);
-            }
+            accommodation.setAmenities(new ArrayList<>(request.amenities()));
         }
 
-        accommodation = accommodationRepository.save(accommodation);
+        accommodation = accommodationRepository.saveAndFlush(accommodation);
         return accommodationMapper.toResponse(accommodation);
     }
 
@@ -84,15 +78,10 @@ public class AccommodationService {
         validateGuestCapacity(accommodation.getMinGuests(), accommodation.getMaxGuests());
 
         if (request.amenities() != null) {
-            accommodation.getAmenities().clear();
-            entityManager.flush();
-            for (AmenityType type : request.amenities()) {
-                Amenity amenity = Amenity.builder().type(type).build();
-                accommodation.addAmenity(amenity);
-            }
+            accommodation.setAmenities(new ArrayList<>(request.amenities()));
         }
 
-        accommodation = accommodationRepository.save(accommodation);
+        accommodation = accommodationRepository.saveAndFlush(accommodation);
         return accommodationMapper.toResponse(accommodation);
     }
 
@@ -102,7 +91,6 @@ public class AccommodationService {
         validateOwnership(accommodation, userContext);
 
         accommodation.setDeleted(true);
-        accommodation.getAmenities().forEach(amenity -> amenity.setDeleted(true));
         accommodationRepository.save(accommodation);
     }
 

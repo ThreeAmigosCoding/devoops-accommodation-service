@@ -50,16 +50,8 @@ public class Accommodation extends BaseEntity {
     private ApprovalMode approvalMode;
 
     @Builder.Default
-    @OneToMany(mappedBy = "accommodation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Amenity> amenities = new ArrayList<>();
-
-    public void addAmenity(Amenity amenity) {
-        amenities.add(amenity);
-        amenity.setAccommodation(this);
-    }
-
-    public void removeAmenity(Amenity amenity) {
-        amenities.remove(amenity);
-        amenity.setAccommodation(null);
-    }
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(nullable = false, columnDefinition = "text[]")
+    private List<AmenityType> amenities = new ArrayList<>();
 }
