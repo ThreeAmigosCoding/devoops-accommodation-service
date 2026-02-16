@@ -11,6 +11,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -36,6 +37,9 @@ class AccommodationIntegrationTest {
             .withUsername("test")
             .withPassword("test");
 
+    @Container
+    static MinIOContainer minio = new MinIOContainer("minio/minio:RELEASE.2024-01-31T20-20-33Z");
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -55,6 +59,12 @@ class AccommodationIntegrationTest {
         registry.add("spring.flyway.url", postgres::getJdbcUrl);
         registry.add("spring.flyway.user", postgres::getUsername);
         registry.add("spring.flyway.password", postgres::getPassword);
+
+        // MinIO
+        registry.add("minio.endpoint", minio::getS3URL);
+        registry.add("minio.access-key", minio::getUserName);
+        registry.add("minio.secret-key", minio::getPassword);
+        registry.add("minio.bucket", () -> "test-accommodation-photos");
     }
 
     private Map<String, Object> validCreateRequest() {
