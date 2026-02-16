@@ -44,6 +44,9 @@ dependencies {
 	annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 	annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
+	// MinIO S3-compatible object storage
+	implementation("io.minio:minio:8.5.7")
+
 	// Tracing (Zipkin)
 	implementation("org.springframework.boot:spring-boot-micrometer-tracing-brave")
 	implementation("org.springframework.boot:spring-boot-starter-zipkin")
@@ -58,6 +61,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.testcontainers:junit-jupiter:1.20.4")
 	testImplementation("org.testcontainers:postgresql:1.20.4")
+	testImplementation("org.testcontainers:minio:1.20.4")
 	testImplementation("io.rest-assured:rest-assured:5.5.0")
 
 	testCompileOnly("org.projectlombok:lombok")
