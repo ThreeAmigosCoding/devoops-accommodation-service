@@ -98,6 +98,7 @@ public class AccommodationGrpcService extends AccommodationInternalServiceGrpc.A
                 .setTotalPrice(totalPrice.toPlainString())
                 .setPricingMode(accommodation.getPricingMode().name())
                 .setApprovalMode(accommodation.getApprovalMode().name())
+                .setAccommodationName(accommodation.getName())
                 .build();
     }
 
