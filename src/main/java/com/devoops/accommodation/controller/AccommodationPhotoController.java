@@ -26,13 +26,12 @@ public class AccommodationPhotoController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequireRole("HOST")
-    public ResponseEntity<AccommodationPhotoResponse> uploadPhoto(
+    public ResponseEntity<List<AccommodationPhotoResponse>> uploadPhotos(
             @PathVariable UUID accommodationId,
-            @RequestPart("file") MultipartFile file,
-            @RequestParam(value = "displayOrder", required = false) Integer displayOrder,
+            @RequestPart("files") List<MultipartFile> files,
             UserContext userContext) {
-        AccommodationPhotoResponse response = photoService.uploadPhoto(accommodationId, file, displayOrder, userContext);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        List<AccommodationPhotoResponse> responses = photoService.uploadPhotos(accommodationId, files, userContext);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }
 
     @GetMapping

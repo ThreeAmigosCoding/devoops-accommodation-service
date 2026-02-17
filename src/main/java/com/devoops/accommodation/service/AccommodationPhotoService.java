@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,38 @@ public class AccommodationPhotoService {
 
     @Value("${app.photo.allowed-content-types}")
     private String allowedContentTypesConfig;
+
+    @Transactional
+    public List<AccommodationPhotoResponse> uploadPhotos(UUID accommodationId, List<MultipartFile> files, UserContext userContext) {
+        Accommodation accommodation = findAccommodationOrThrow(accommodationId);
+        validateOwnership(accommodation, userContext);
+
+        long currentCount = photoRepository.countByAccommodationId(accommodationId);
+        if (currentCount + files.size() > maxPhotosPerAccommodation) {
+            throw new PhotoLimitExceededException("Adding " + files.size() + " photos would exceed the limit of " + maxPhotosPerAccommodation + " photos per accommodation");
+        }
+
+        int nextOrder = photoRepository.findMaxDisplayOrder(accommodationId) + 1;
+        List<AccommodationPhoto> photos = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            validateContentType(file.getContentType());
+            String storageFilename = photoStorageService.store(file);
+
+            AccommodationPhoto photo = AccommodationPhoto.builder()
+                    .accommodationId(accommodationId)
+                    .storageFilename(storageFilename)
+                    .originalFilename(file.getOriginalFilename())
+                    .contentType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .displayOrder(nextOrder++)
+                    .build();
+            photos.add(photoRepository.saveAndFlush(photo));
+        }
+
+        log.info("Uploaded {} photos for accommodation {}", photos.size(), accommodationId);
+        return photoMapper.toResponseList(photos);
+    }
 
     @Transactional
     public AccommodationPhotoResponse uploadPhoto(UUID accommodationId, MultipartFile file, Integer displayOrder, UserContext userContext) {
