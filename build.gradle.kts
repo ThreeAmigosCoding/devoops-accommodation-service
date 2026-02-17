@@ -1,8 +1,11 @@
+import com.google.protobuf.gradle.*
+
 plugins {
 	java
 	jacoco
 	id("org.springframework.boot") version "4.0.1"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("com.google.protobuf") version "0.9.4"
 }
 
 group = "com.devoops"
@@ -18,6 +21,8 @@ java {
 repositories {
 	mavenCentral()
 }
+
+val grpcVersion = "1.68.0"
 
 dependencies {
 	// Web and Core
@@ -47,6 +52,13 @@ dependencies {
 	// MinIO S3-compatible object storage
 	implementation("io.minio:minio:8.5.7")
 
+	// gRPC Client
+	implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
+	implementation("io.grpc:grpc-protobuf:$grpcVersion")
+	implementation("io.grpc:grpc-stub:$grpcVersion")
+	implementation("io.grpc:grpc-netty-shaded:$grpcVersion")
+	compileOnly("javax.annotation:javax.annotation-api:1.3.2")
+
 	// Tracing (Zipkin)
 	implementation("org.springframework.boot:spring-boot-micrometer-tracing-brave")
 	implementation("org.springframework.boot:spring-boot-starter-zipkin")
@@ -67,6 +79,24 @@ dependencies {
 	testCompileOnly("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+protobuf {
+	protoc {
+		artifact = "com.google.protobuf:protoc:3.25.5"
+	}
+	plugins {
+		id("grpc") {
+			artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
+		}
+	}
+	generateProtoTasks {
+		all().forEach { task ->
+			task.plugins {
+				id("grpc")
+			}
+		}
+	}
 }
 
 tasks.withType<Test> {

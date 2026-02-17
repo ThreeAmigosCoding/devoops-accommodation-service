@@ -71,4 +71,19 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds the maximum allowed limit");
     }
+
+    @ExceptionHandler(AvailabilityPeriodNotFoundException.class)
+    public ProblemDetail handleAvailabilityPeriodNotFound(AvailabilityPeriodNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(OverlappingAvailabilityPeriodException.class)
+    public ProblemDetail handleOverlappingAvailabilityPeriod(OverlappingAvailabilityPeriodException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ReservationConflictException.class)
+    public ProblemDetail handleReservationConflict(ReservationConflictException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
 }
