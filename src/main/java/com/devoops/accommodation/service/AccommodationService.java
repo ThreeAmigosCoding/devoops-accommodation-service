@@ -10,6 +10,10 @@ import com.devoops.accommodation.exception.ForbiddenException;
 import com.devoops.accommodation.mapper.AccommodationMapper;
 import com.devoops.accommodation.repository.AccommodationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +53,13 @@ public class AccommodationService {
     public List<AccommodationResponse> getByHostId(UUID hostId) {
         List<Accommodation> accommodations = accommodationRepository.findByHostId(hostId);
         return accommodationMapper.toResponseList(accommodations);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AccommodationResponse> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Accommodation> accommodations = accommodationRepository.findAll(pageable);
+        return accommodations.map(accommodationMapper::toResponse);
     }
 
     @Transactional
