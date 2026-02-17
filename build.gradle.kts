@@ -52,8 +52,9 @@ dependencies {
 	// MinIO S3-compatible object storage
 	implementation("io.minio:minio:8.5.7")
 
-	// gRPC Client
+	// gRPC Client and Server
 	implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
+	implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
 	implementation("io.grpc:grpc-protobuf:$grpcVersion")
 	implementation("io.grpc:grpc-stub:$grpcVersion")
 	implementation("io.grpc:grpc-netty-shaded:$grpcVersion")

@@ -41,4 +41,16 @@ public interface AvailabilityPeriodRepository extends JpaRepository<Availability
             @Param("endDate") LocalDate endDate,
             @Param("excludeId") UUID excludeId
     );
+
+    @Query("""
+            SELECT ap FROM AvailabilityPeriod ap
+            WHERE ap.accommodationId = :accommodationId
+            AND ap.startDate <= :startDate
+            AND ap.endDate >= :endDate
+            """)
+    Optional<AvailabilityPeriod> findCoveringPeriod(
+            @Param("accommodationId") UUID accommodationId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }
