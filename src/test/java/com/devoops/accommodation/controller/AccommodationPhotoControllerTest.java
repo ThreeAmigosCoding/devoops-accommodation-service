@@ -82,44 +82,25 @@ class AccommodationPhotoControllerTest {
         @DisplayName("With valid request returns 201")
         void upload_WithValidRequest_Returns201() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.jpg", "image/jpeg", "test content".getBytes());
+                    "files", "test.jpg", "image/jpeg", "test content".getBytes());
 
-            when(photoService.uploadPhoto(eq(ACCOMMODATION_ID), any(), any(), any(UserContext.class)))
-                    .thenReturn(createPhotoResponse());
+            when(photoService.uploadPhotos(eq(ACCOMMODATION_ID), any(), any(UserContext.class)))
+                    .thenReturn(List.of(createPhotoResponse()));
 
             mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)
                             .file(file)
                             .header("X-User-Id", HOST_ID.toString())
                             .header("X-User-Role", "HOST"))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").value(PHOTO_ID.toString()))
-                    .andExpect(jsonPath("$.originalFilename").value("test.jpg"));
-        }
-
-        @Test
-        @DisplayName("With display order parameter uses it")
-        void upload_WithDisplayOrder_UsesParameter() throws Exception {
-            MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.jpg", "image/jpeg", "test content".getBytes());
-
-            when(photoService.uploadPhoto(eq(ACCOMMODATION_ID), any(), eq(5), any(UserContext.class)))
-                    .thenReturn(createPhotoResponse());
-
-            mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)
-                            .file(file)
-                            .param("displayOrder", "5")
-                            .header("X-User-Id", HOST_ID.toString())
-                            .header("X-User-Role", "HOST"))
-                    .andExpect(status().isCreated());
-
-            verify(photoService).uploadPhoto(eq(ACCOMMODATION_ID), any(), eq(5), any(UserContext.class));
+                    .andExpect(jsonPath("$[0].id").value(PHOTO_ID.toString()))
+                    .andExpect(jsonPath("$[0].originalFilename").value("test.jpg"));
         }
 
         @Test
         @DisplayName("With missing auth headers returns 401")
         void upload_WithMissingAuthHeaders_Returns401() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.jpg", "image/jpeg", "test content".getBytes());
+                    "files", "test.jpg", "image/jpeg", "test content".getBytes());
 
             mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)
                             .file(file))
@@ -130,7 +111,7 @@ class AccommodationPhotoControllerTest {
         @DisplayName("With GUEST role returns 403")
         void upload_WithGuestRole_Returns403() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.jpg", "image/jpeg", "test content".getBytes());
+                    "files", "test.jpg", "image/jpeg", "test content".getBytes());
 
             mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)
                             .file(file)
@@ -143,9 +124,9 @@ class AccommodationPhotoControllerTest {
         @DisplayName("With accommodation not found returns 404")
         void upload_WithAccommodationNotFound_Returns404() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.jpg", "image/jpeg", "test content".getBytes());
+                    "files", "test.jpg", "image/jpeg", "test content".getBytes());
 
-            when(photoService.uploadPhoto(eq(ACCOMMODATION_ID), any(), any(), any(UserContext.class)))
+            when(photoService.uploadPhotos(eq(ACCOMMODATION_ID), any(), any(UserContext.class)))
                     .thenThrow(new AccommodationNotFoundException("Not found"));
 
             mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)
@@ -159,9 +140,9 @@ class AccommodationPhotoControllerTest {
         @DisplayName("With invalid content type returns 400")
         void upload_WithInvalidContentType_Returns400() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.gif", "image/gif", "test content".getBytes());
+                    "files", "test.gif", "image/gif", "test content".getBytes());
 
-            when(photoService.uploadPhoto(eq(ACCOMMODATION_ID), any(), any(), any(UserContext.class)))
+            when(photoService.uploadPhotos(eq(ACCOMMODATION_ID), any(), any(UserContext.class)))
                     .thenThrow(new InvalidContentTypeException("Invalid content type"));
 
             mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)
@@ -175,9 +156,9 @@ class AccommodationPhotoControllerTest {
         @DisplayName("With photo limit exceeded returns 400")
         void upload_WithPhotoLimitExceeded_Returns400() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
-                    "file", "test.jpg", "image/jpeg", "test content".getBytes());
+                    "files", "test.jpg", "image/jpeg", "test content".getBytes());
 
-            when(photoService.uploadPhoto(eq(ACCOMMODATION_ID), any(), any(), any(UserContext.class)))
+            when(photoService.uploadPhotos(eq(ACCOMMODATION_ID), any(), any(UserContext.class)))
                     .thenThrow(new PhotoLimitExceededException("Limit exceeded"));
 
             mockMvc.perform(multipart("/api/accommodation/{accommodationId}/photos", ACCOMMODATION_ID)

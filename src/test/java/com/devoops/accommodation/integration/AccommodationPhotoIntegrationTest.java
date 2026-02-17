@@ -103,7 +103,7 @@ class AccommodationPhotoIntegrationTest {
     @DisplayName("Upload photo with valid request returns 201")
     void uploadPhoto_WithValidRequest_Returns201() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "test-image.jpg", "image/jpeg",
+                "files", "test-image.jpg", "image/jpeg",
                 "fake image content".getBytes());
 
         MvcResult result = mockMvc.perform(multipart(photosPath())
@@ -111,32 +111,30 @@ class AccommodationPhotoIntegrationTest {
                         .header("X-User-Id", HOST_ID.toString())
                         .header("X-User-Role", "HOST"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.accommodationId").value(accommodationId))
-                .andExpect(jsonPath("$.originalFilename").value("test-image.jpg"))
-                .andExpect(jsonPath("$.contentType").value("image/jpeg"))
-                .andExpect(jsonPath("$.displayOrder").value(0))
+                .andExpect(jsonPath("$[0].id").isNotEmpty())
+                .andExpect(jsonPath("$[0].accommodationId").value(accommodationId))
+                .andExpect(jsonPath("$[0].originalFilename").value("test-image.jpg"))
+                .andExpect(jsonPath("$[0].contentType").value("image/jpeg"))
                 .andReturn();
 
         photoId = objectMapper.readTree(result.getResponse().getContentAsString())
-                .get("id").asText();
+                .get(0).get("id").asText();
     }
 
     @Test
     @Order(3)
-    @DisplayName("Upload photo with custom display order uses provided order")
-    void uploadPhoto_WithDisplayOrder_UsesProvidedOrder() throws Exception {
+    @DisplayName("Upload second photo returns 201 with auto-assigned display order")
+    void uploadPhoto_SecondPhoto_Returns201() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "second-image.png", "image/png",
+                "files", "second-image.png", "image/png",
                 "fake image content 2".getBytes());
 
         mockMvc.perform(multipart(photosPath())
                         .file(file)
-                        .param("displayOrder", "5")
                         .header("X-User-Id", HOST_ID.toString())
                         .header("X-User-Role", "HOST"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.displayOrder").value(5));
+                .andExpect(jsonPath("$[0].originalFilename").value("second-image.png"));
     }
 
     @Test
@@ -144,7 +142,7 @@ class AccommodationPhotoIntegrationTest {
     @DisplayName("Upload photo without auth headers returns 401")
     void uploadPhoto_WithoutAuthHeaders_Returns401() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "test.jpg", "image/jpeg", "content".getBytes());
+                "files", "test.jpg", "image/jpeg", "content".getBytes());
 
         mockMvc.perform(multipart(photosPath())
                         .file(file))
@@ -156,7 +154,7 @@ class AccommodationPhotoIntegrationTest {
     @DisplayName("Upload photo with GUEST role returns 403")
     void uploadPhoto_WithGuestRole_Returns403() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "test.jpg", "image/jpeg", "content".getBytes());
+                "files", "test.jpg", "image/jpeg", "content".getBytes());
 
         mockMvc.perform(multipart(photosPath())
                         .file(file)
@@ -170,7 +168,7 @@ class AccommodationPhotoIntegrationTest {
     @DisplayName("Upload photo with different host returns 403")
     void uploadPhoto_WithDifferentHost_Returns403() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "test.jpg", "image/jpeg", "content".getBytes());
+                "files", "test.jpg", "image/jpeg", "content".getBytes());
 
         mockMvc.perform(multipart(photosPath())
                         .file(file)
@@ -184,7 +182,7 @@ class AccommodationPhotoIntegrationTest {
     @DisplayName("Upload photo with invalid content type returns 400")
     void uploadPhoto_WithInvalidContentType_Returns400() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "test.gif", "image/gif", "content".getBytes());
+                "files", "test.gif", "image/gif", "content".getBytes());
 
         mockMvc.perform(multipart(photosPath())
                         .file(file)
