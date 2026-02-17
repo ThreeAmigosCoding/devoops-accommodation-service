@@ -8,6 +8,7 @@ import com.devoops.accommodation.dto.response.AccommodationResponse;
 import com.devoops.accommodation.service.AccommodationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,13 @@ public class AccommodationController {
             UserContext userContext) {
         AccommodationResponse response = accommodationService.create(request, userContext);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<AccommodationResponse>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok(accommodationService.getAll(page, size));
     }
 
     @GetMapping("/{id}")
