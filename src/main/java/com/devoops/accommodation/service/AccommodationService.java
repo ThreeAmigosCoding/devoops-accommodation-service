@@ -4,11 +4,15 @@ import com.devoops.accommodation.config.UserContext;
 import com.devoops.accommodation.dto.request.CreateAccommodationRequest;
 import com.devoops.accommodation.dto.request.UpdateAccommodationRequest;
 import com.devoops.accommodation.dto.response.AccommodationResponse;
+import com.devoops.accommodation.dto.response.AccommodationSearchResponse;
 import com.devoops.accommodation.entity.Accommodation;
+import com.devoops.accommodation.entity.AvailabilityPeriod;
+import com.devoops.accommodation.entity.PricingMode;
 import com.devoops.accommodation.exception.AccommodationNotFoundException;
 import com.devoops.accommodation.exception.ForbiddenException;
 import com.devoops.accommodation.mapper.AccommodationMapper;
 import com.devoops.accommodation.repository.AccommodationRepository;
+import com.devoops.accommodation.repository.AvailabilityPeriodRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,8 +21,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,6 +35,7 @@ public class AccommodationService {
 
     private final AccommodationRepository accommodationRepository;
     private final AccommodationMapper accommodationMapper;
+    private final AvailabilityPeriodRepository availabilityPeriodRepository;
 
     @Transactional
     public AccommodationResponse create(CreateAccommodationRequest request, UserContext userContext) {
@@ -103,6 +112,53 @@ public class AccommodationService {
 
         accommodation.setDeleted(true);
         accommodationRepository.save(accommodation);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AccommodationSearchResponse> search(String location, int guests, LocalDate startDate, LocalDate endDate) {
+        if (!endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("End date must be after start date");
+        }
+
+        long nights = ChronoUnit.DAYS.between(startDate, endDate);
+        List<Accommodation> candidates = accommodationRepository.searchByLocationAndGuests(location, guests);
+        List<AccommodationSearchResponse> results = new ArrayList<>();
+
+        for (Accommodation accommodation : candidates) {
+            Optional<AvailabilityPeriod> coveringPeriod = availabilityPeriodRepository
+                    .findCoveringPeriod(accommodation.getId(), startDate, endDate);
+
+            if (coveringPeriod.isPresent()) {
+                AvailabilityPeriod period = coveringPeriod.get();
+                BigDecimal unitPrice = period.getPricePerDay();
+                BigDecimal totalPrice;
+
+                if (accommodation.getPricingMode() == PricingMode.PER_GUEST) {
+                    totalPrice = unitPrice.multiply(BigDecimal.valueOf(nights)).multiply(BigDecimal.valueOf(guests));
+                } else {
+                    totalPrice = unitPrice.multiply(BigDecimal.valueOf(nights));
+                }
+
+                results.add(new AccommodationSearchResponse(
+                        accommodation.getId(),
+                        accommodation.getHostId(),
+                        accommodation.getName(),
+                        accommodation.getAddress(),
+                        accommodation.getMinGuests(),
+                        accommodation.getMaxGuests(),
+                        accommodation.getPricingMode(),
+                        accommodation.getApprovalMode(),
+                        accommodation.getAmenities(),
+                        accommodation.getCreatedAt(),
+                        accommodation.getUpdatedAt(),
+                        totalPrice,
+                        unitPrice,
+                        (int) nights
+                ));
+            }
+        }
+
+        return results;
     }
 
     private Accommodation findAccommodationOrThrow(UUID id) {

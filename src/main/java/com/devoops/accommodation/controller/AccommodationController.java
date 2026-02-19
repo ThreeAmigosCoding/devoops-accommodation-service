@@ -5,14 +5,17 @@ import com.devoops.accommodation.config.UserContext;
 import com.devoops.accommodation.dto.request.CreateAccommodationRequest;
 import com.devoops.accommodation.dto.request.UpdateAccommodationRequest;
 import com.devoops.accommodation.dto.response.AccommodationResponse;
+import com.devoops.accommodation.dto.response.AccommodationSearchResponse;
 import com.devoops.accommodation.service.AccommodationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +40,15 @@ public class AccommodationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
         return ResponseEntity.ok(accommodationService.getAll(page, size));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<AccommodationSearchResponse>> search(
+            @RequestParam String location,
+            @RequestParam int guests,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(accommodationService.search(location, guests, startDate, endDate));
     }
 
     @GetMapping("/{id}")
