@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -84,11 +85,12 @@ class AccommodationSearchServiceTest {
             when(availabilityPeriodRepository.findCoveringPeriod(ACCOMMODATION_ID, startDate, endDate))
                     .thenReturn(Optional.of(period));
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12);
 
-            assertThat(results).hasSize(1);
-            assertThat(results.get(0).id()).isEqualTo(ACCOMMODATION_ID);
-            assertThat(results.get(0).name()).isEqualTo("Test Apartment");
+            assertThat(results.getContent()).hasSize(1);
+            assertThat(results.getContent().get(0).id()).isEqualTo(ACCOMMODATION_ID);
+            assertThat(results.getContent().get(0).name()).isEqualTo("Test Apartment");
+            assertThat(results.getTotalElements()).isEqualTo(1);
         }
 
         @Test
@@ -104,12 +106,12 @@ class AccommodationSearchServiceTest {
             when(availabilityPeriodRepository.findCoveringPeriod(ACCOMMODATION_ID, startDate, endDate))
                     .thenReturn(Optional.of(period));
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12);
 
-            assertThat(results.get(0).unitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
+            assertThat(results.getContent().get(0).unitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
             // 50 * 5 nights * 2 guests = 500
-            assertThat(results.get(0).totalPrice()).isEqualByComparingTo(new BigDecimal("500.00"));
-            assertThat(results.get(0).numberOfNights()).isEqualTo(5);
+            assertThat(results.getContent().get(0).totalPrice()).isEqualByComparingTo(new BigDecimal("500.00"));
+            assertThat(results.getContent().get(0).numberOfNights()).isEqualTo(5);
         }
 
         @Test
@@ -125,12 +127,12 @@ class AccommodationSearchServiceTest {
             when(availabilityPeriodRepository.findCoveringPeriod(ACCOMMODATION_ID, startDate, endDate))
                     .thenReturn(Optional.of(period));
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 3, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 3, startDate, endDate, 0, 12);
 
-            assertThat(results.get(0).unitPrice()).isEqualByComparingTo(new BigDecimal("100.00"));
+            assertThat(results.getContent().get(0).unitPrice()).isEqualByComparingTo(new BigDecimal("100.00"));
             // 100 * 5 nights = 500 (no guest multiplier)
-            assertThat(results.get(0).totalPrice()).isEqualByComparingTo(new BigDecimal("500.00"));
-            assertThat(results.get(0).numberOfNights()).isEqualTo(5);
+            assertThat(results.getContent().get(0).totalPrice()).isEqualByComparingTo(new BigDecimal("500.00"));
+            assertThat(results.getContent().get(0).numberOfNights()).isEqualTo(5);
         }
 
         @Test
@@ -145,23 +147,25 @@ class AccommodationSearchServiceTest {
             when(availabilityPeriodRepository.findCoveringPeriod(ACCOMMODATION_ID, startDate, endDate))
                     .thenReturn(Optional.empty());
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12);
 
-            assertThat(results).isEmpty();
+            assertThat(results.getContent()).isEmpty();
+            assertThat(results.getTotalElements()).isZero();
         }
 
         @Test
-        @DisplayName("With no matching location returns empty list")
-        void search_WithNoMatchingLocation_ReturnsEmptyList() {
+        @DisplayName("With no matching location returns empty page")
+        void search_WithNoMatchingLocation_ReturnsEmptyPage() {
             var startDate = LocalDate.of(2026, 3, 5);
             var endDate = LocalDate.of(2026, 3, 10);
 
             when(accommodationRepository.searchByLocationAndGuests("Nowhere", 2))
                     .thenReturn(List.of());
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Nowhere", 2, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Nowhere", 2, startDate, endDate, 0, 12);
 
-            assertThat(results).isEmpty();
+            assertThat(results.getContent()).isEmpty();
+            assertThat(results.getTotalElements()).isZero();
         }
 
         @Test
@@ -170,7 +174,7 @@ class AccommodationSearchServiceTest {
             var startDate = LocalDate.of(2026, 3, 10);
             var endDate = LocalDate.of(2026, 3, 5);
 
-            assertThatThrownBy(() -> accommodationService.search("Belgrade", 2, startDate, endDate))
+            assertThatThrownBy(() -> accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("End date must be after start date");
         }
@@ -180,7 +184,7 @@ class AccommodationSearchServiceTest {
         void search_WithEqualDates_ThrowsIllegalArgumentException() {
             var date = LocalDate.of(2026, 3, 10);
 
-            assertThatThrownBy(() -> accommodationService.search("Belgrade", 2, date, date))
+            assertThatThrownBy(() -> accommodationService.search("Belgrade", 2, date, date, 0, 12))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("End date must be after start date");
         }
@@ -211,10 +215,11 @@ class AccommodationSearchServiceTest {
             when(availabilityPeriodRepository.findCoveringPeriod(id2, startDate, endDate))
                     .thenReturn(Optional.empty());
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12);
 
-            assertThat(results).hasSize(1);
-            assertThat(results.get(0).id()).isEqualTo(ACCOMMODATION_ID);
+            assertThat(results.getContent()).hasSize(1);
+            assertThat(results.getContent().get(0).id()).isEqualTo(ACCOMMODATION_ID);
+            assertThat(results.getTotalElements()).isEqualTo(1);
         }
 
         @Test
@@ -230,11 +235,49 @@ class AccommodationSearchServiceTest {
             when(availabilityPeriodRepository.findCoveringPeriod(ACCOMMODATION_ID, startDate, endDate))
                     .thenReturn(Optional.of(period));
 
-            List<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 1, startDate, endDate);
+            Page<AccommodationSearchResponse> results = accommodationService.search("Belgrade", 1, startDate, endDate, 0, 12);
 
-            assertThat(results.get(0).numberOfNights()).isEqualTo(1);
+            assertThat(results.getContent().get(0).numberOfNights()).isEqualTo(1);
             // 80 * 1 night * 1 guest = 80
-            assertThat(results.get(0).totalPrice()).isEqualByComparingTo(new BigDecimal("80.00"));
+            assertThat(results.getContent().get(0).totalPrice()).isEqualByComparingTo(new BigDecimal("80.00"));
+        }
+
+        @Test
+        @DisplayName("Pagination returns correct page slice")
+        void search_WithPagination_ReturnsCorrectSlice() {
+            var accommodation1 = createAccommodation(PricingMode.PER_GUEST);
+            var id2 = UUID.randomUUID();
+            var accommodation2 = Accommodation.builder()
+                    .id(id2).hostId(HOST_ID).name("Second").address("Belgrade")
+                    .minGuests(1).maxGuests(4).pricingMode(PricingMode.PER_GUEST)
+                    .approvalMode(ApprovalMode.MANUAL).build();
+            var period1 = createPeriod(new BigDecimal("50.00"));
+            var period2 = AvailabilityPeriod.builder()
+                    .id(UUID.randomUUID()).accommodationId(id2)
+                    .startDate(LocalDate.of(2026, 3, 1)).endDate(LocalDate.of(2026, 3, 31))
+                    .pricePerDay(new BigDecimal("60.00")).build();
+            var startDate = LocalDate.of(2026, 3, 5);
+            var endDate = LocalDate.of(2026, 3, 10);
+
+            when(accommodationRepository.searchByLocationAndGuests("Belgrade", 2))
+                    .thenReturn(List.of(accommodation1, accommodation2));
+            when(availabilityPeriodRepository.findCoveringPeriod(ACCOMMODATION_ID, startDate, endDate))
+                    .thenReturn(Optional.of(period1));
+            when(availabilityPeriodRepository.findCoveringPeriod(id2, startDate, endDate))
+                    .thenReturn(Optional.of(period2));
+
+            // Page 0, size 1 — should return first result only
+            Page<AccommodationSearchResponse> page0 = accommodationService.search("Belgrade", 2, startDate, endDate, 0, 1);
+            assertThat(page0.getContent()).hasSize(1);
+            assertThat(page0.getTotalElements()).isEqualTo(2);
+            assertThat(page0.getTotalPages()).isEqualTo(2);
+            assertThat(page0.isLast()).isFalse();
+
+            // Page 1, size 1 — should return second result only
+            Page<AccommodationSearchResponse> page1 = accommodationService.search("Belgrade", 2, startDate, endDate, 1, 1);
+            assertThat(page1.getContent()).hasSize(1);
+            assertThat(page1.getTotalElements()).isEqualTo(2);
+            assertThat(page1.isLast()).isTrue();
         }
     }
 }
