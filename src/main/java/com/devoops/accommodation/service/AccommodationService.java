@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,6 +114,18 @@ public class AccommodationService {
 
         accommodation.setDeleted(true);
         accommodationRepository.save(accommodation);
+    }
+
+    /**
+     * Soft delete all accommodations owned by a host.
+     * Used when a host deletes their account (cascade deletion).
+     *
+     * @param hostId the ID of the host whose accommodations should be deleted
+     * @return the number of accommodations soft-deleted
+     */
+    @Transactional
+    public int deleteAllByHostId(UUID hostId) {
+        return accommodationRepository.softDeleteByHostId(hostId, LocalDateTime.now());
     }
 
     @Transactional(readOnly = true)
