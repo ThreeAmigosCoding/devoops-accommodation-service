@@ -3,11 +3,10 @@ package com.devoops.accommodation.grpc;
 import com.devoops.accommodation.entity.Accommodation;
 import com.devoops.accommodation.entity.AvailabilityPeriod;
 import com.devoops.accommodation.entity.PricingMode;
-import com.devoops.accommodation.grpc.proto.AccommodationInternalServiceGrpc;
-import com.devoops.accommodation.grpc.proto.ReservationValidationRequest;
-import com.devoops.accommodation.grpc.proto.ReservationValidationResponse;
+import com.devoops.accommodation.grpc.proto.*;
 import com.devoops.accommodation.repository.AccommodationRepository;
 import com.devoops.accommodation.repository.AvailabilityPeriodRepository;
+import com.devoops.accommodation.service.AccommodationService;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +26,7 @@ public class AccommodationGrpcService extends AccommodationInternalServiceGrpc.A
 
     private final AccommodationRepository accommodationRepository;
     private final AvailabilityPeriodRepository availabilityPeriodRepository;
+    private final AccommodationService accommodationService;
 
     @Override
     public void validateAndCalculatePrice(
@@ -125,5 +125,44 @@ public class AccommodationGrpcService extends AccommodationInternalServiceGrpc.A
                 .setErrorCode(errorCode)
                 .setErrorMessage(errorMessage)
                 .build();
+    }
+
+    @Override
+    public void deleteAccommodationsByHost(DeleteByHostRequest request,
+                                           StreamObserver<DeleteByHostResponse> responseObserver) {
+        log.debug("gRPC: Deleting all accommodations for host: {}", request.getHostId());
+
+        try {
+            UUID hostId = UUID.fromString(request.getHostId());
+            int deletedCount = accommodationService.deleteAllByHostId(hostId);
+
+            log.info("Deleted {} accommodations for host {}", deletedCount, hostId);
+
+            DeleteByHostResponse response = DeleteByHostResponse.newBuilder()
+                    .setSuccess(true)
+                    .setDeletedCount(deletedCount)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid host ID format: {}", request.getHostId(), e);
+            DeleteByHostResponse response = DeleteByHostResponse.newBuilder()
+                    .setSuccess(false)
+                    .setDeletedCount(0)
+                    .setErrorMessage("Invalid host ID format")
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Failed to delete accommodations for host {}", request.getHostId(), e);
+            DeleteByHostResponse response = DeleteByHostResponse.newBuilder()
+                    .setSuccess(false)
+                    .setDeletedCount(0)
+                    .setErrorMessage("Failed to delete accommodations: " + e.getMessage())
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        }
     }
 }

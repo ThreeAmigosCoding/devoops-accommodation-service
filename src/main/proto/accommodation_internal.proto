@@ -6,6 +6,7 @@ option java_package = "com.devoops.accommodation.grpc.proto";
 
 service AccommodationInternalService {
   rpc ValidateAndCalculatePrice(ReservationValidationRequest) returns (ReservationValidationResponse);
+  rpc DeleteAccommodationsByHost(DeleteByHostRequest) returns (DeleteByHostResponse);
 }
 
 message ReservationValidationRequest {
@@ -24,4 +25,14 @@ message ReservationValidationResponse {
   string pricing_mode = 6;
   string approval_mode = 7;
   string accommodation_name = 8;
+}
+
+message DeleteByHostRequest {
+  string host_id = 1;
+}
+
+message DeleteByHostResponse {
+  bool success = 1;
+  int32 deleted_count = 2;
+  string error_message = 3;
 }
