@@ -155,18 +155,20 @@ class AccommodationSearchIntegrationTest {
 
     @Test
     @Order(5)
-    @DisplayName("Search with matching criteria returns results with prices")
-    void search_WithMatchingCriteria_ReturnsResultsWithPrices() throws Exception {
+    @DisplayName("Search with matching criteria returns paginated results with prices")
+    void search_WithMatchingCriteria_ReturnsPaginatedResultsWithPrices() throws Exception {
         mockMvc.perform(get(SEARCH_PATH)
                         .param("location", "Belgrade")
                         .param("guests", "2")
                         .param("startDate", "2026-03-05")
                         .param("endDate", "2026-03-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].totalPrice").exists())
-                .andExpect(jsonPath("$[*].unitPrice").exists())
-                .andExpect(jsonPath("$[*].numberOfNights").exists());
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[*].totalPrice").exists())
+                .andExpect(jsonPath("$.content[*].unitPrice").exists())
+                .andExpect(jsonPath("$.content[*].numberOfNights").exists())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.last").value(true));
     }
 
     @Test
@@ -180,11 +182,11 @@ class AccommodationSearchIntegrationTest {
                         .param("startDate", "2026-03-05")
                         .param("endDate", "2026-03-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].name").value("Belgrade Apartment"))
-                .andExpect(jsonPath("$[0].unitPrice").value(50.00))
-                .andExpect(jsonPath("$[0].totalPrice").value(500.00))
-                .andExpect(jsonPath("$[0].numberOfNights").value(5));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].name").value("Belgrade Apartment"))
+                .andExpect(jsonPath("$.content[0].unitPrice").value(50.00))
+                .andExpect(jsonPath("$.content[0].totalPrice").value(500.00))
+                .andExpect(jsonPath("$.content[0].numberOfNights").value(5));
     }
 
     @Test
@@ -198,50 +200,53 @@ class AccommodationSearchIntegrationTest {
                         .param("startDate", "2026-03-05")
                         .param("endDate", "2026-03-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].name").value("Belgrade Studio"))
-                .andExpect(jsonPath("$[0].unitPrice").value(100.00))
-                .andExpect(jsonPath("$[0].totalPrice").value(500.00))
-                .andExpect(jsonPath("$[0].numberOfNights").value(5));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].name").value("Belgrade Studio"))
+                .andExpect(jsonPath("$.content[0].unitPrice").value(100.00))
+                .andExpect(jsonPath("$.content[0].totalPrice").value(500.00))
+                .andExpect(jsonPath("$.content[0].numberOfNights").value(5));
     }
 
     @Test
     @Order(8)
-    @DisplayName("Search with non-matching location returns empty list")
-    void search_WithNonMatchingLocation_ReturnsEmptyList() throws Exception {
+    @DisplayName("Search with non-matching location returns empty page")
+    void search_WithNonMatchingLocation_ReturnsEmptyPage() throws Exception {
         mockMvc.perform(get(SEARCH_PATH)
                         .param("location", "Paris")
                         .param("guests", "2")
                         .param("startDate", "2026-03-05")
                         .param("endDate", "2026-03-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(0)))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
     @Order(9)
-    @DisplayName("Search with too many guests returns empty list")
-    void search_WithTooManyGuests_ReturnsEmptyList() throws Exception {
+    @DisplayName("Search with too many guests returns empty page")
+    void search_WithTooManyGuests_ReturnsEmptyPage() throws Exception {
         mockMvc.perform(get(SEARCH_PATH)
                         .param("location", "Belgrade")
                         .param("guests", "10")
                         .param("startDate", "2026-03-05")
                         .param("endDate", "2026-03-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(0)))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
     @Order(10)
-    @DisplayName("Search with dates outside availability returns empty list")
-    void search_WithDatesOutsideAvailability_ReturnsEmptyList() throws Exception {
+    @DisplayName("Search with dates outside availability returns empty page")
+    void search_WithDatesOutsideAvailability_ReturnsEmptyPage() throws Exception {
         mockMvc.perform(get(SEARCH_PATH)
                         .param("location", "Belgrade")
                         .param("guests", "2")
                         .param("startDate", "2026-05-01")
                         .param("endDate", "2026-05-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(0)))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
@@ -279,7 +284,7 @@ class AccommodationSearchIntegrationTest {
 
     @Test
     @Order(14)
-    @DisplayName("Search returns all accommodation fields")
+    @DisplayName("Search returns all accommodation fields in paginated response")
     void search_ReturnsAllAccommodationFields() throws Exception {
         mockMvc.perform(get(SEARCH_PATH)
                         .param("location", "Belgrade Center")
@@ -287,13 +292,32 @@ class AccommodationSearchIntegrationTest {
                         .param("startDate", "2026-03-05")
                         .param("endDate", "2026-03-10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(accommodationId))
-                .andExpect(jsonPath("$[0].hostId").value(HOST_ID.toString()))
-                .andExpect(jsonPath("$[0].name").value("Belgrade Apartment"))
-                .andExpect(jsonPath("$[0].address").value("123 Belgrade Center, Serbia"))
-                .andExpect(jsonPath("$[0].minGuests").value(1))
-                .andExpect(jsonPath("$[0].maxGuests").value(4))
-                .andExpect(jsonPath("$[0].pricingMode").value("PER_GUEST"))
-                .andExpect(jsonPath("$[0].approvalMode").value("MANUAL"));
+                .andExpect(jsonPath("$.content[0].id").value(accommodationId))
+                .andExpect(jsonPath("$.content[0].hostId").value(HOST_ID.toString()))
+                .andExpect(jsonPath("$.content[0].name").value("Belgrade Apartment"))
+                .andExpect(jsonPath("$.content[0].address").value("123 Belgrade Center, Serbia"))
+                .andExpect(jsonPath("$.content[0].minGuests").value(1))
+                .andExpect(jsonPath("$.content[0].maxGuests").value(4))
+                .andExpect(jsonPath("$.content[0].pricingMode").value("PER_GUEST"))
+                .andExpect(jsonPath("$.content[0].approvalMode").value("MANUAL"));
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("Search with pagination returns correct page")
+    void search_WithPagination_ReturnsCorrectPage() throws Exception {
+        mockMvc.perform(get(SEARCH_PATH)
+                        .param("location", "Belgrade")
+                        .param("guests", "2")
+                        .param("startDate", "2026-03-05")
+                        .param("endDate", "2026-03-10")
+                        .param("page", "0")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.last").value(false))
+                .andExpect(jsonPath("$.number").value(0));
     }
 }

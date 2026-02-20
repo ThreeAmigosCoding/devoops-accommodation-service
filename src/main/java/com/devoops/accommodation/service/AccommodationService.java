@@ -15,6 +15,7 @@ import com.devoops.accommodation.repository.AccommodationRepository;
 import com.devoops.accommodation.repository.AvailabilityPeriodRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -115,14 +116,14 @@ public class AccommodationService {
     }
 
     @Transactional(readOnly = true)
-    public List<AccommodationSearchResponse> search(String location, int guests, LocalDate startDate, LocalDate endDate) {
+    public Page<AccommodationSearchResponse> search(String location, int guests, LocalDate startDate, LocalDate endDate, int page, int size) {
         if (!endDate.isAfter(startDate)) {
             throw new IllegalArgumentException("End date must be after start date");
         }
 
         long nights = ChronoUnit.DAYS.between(startDate, endDate);
         List<Accommodation> candidates = accommodationRepository.searchByLocationAndGuests(location, guests);
-        List<AccommodationSearchResponse> results = new ArrayList<>();
+        List<AccommodationSearchResponse> allResults = new ArrayList<>();
 
         for (Accommodation accommodation : candidates) {
             Optional<AvailabilityPeriod> coveringPeriod = availabilityPeriodRepository
@@ -139,7 +140,7 @@ public class AccommodationService {
                     totalPrice = unitPrice.multiply(BigDecimal.valueOf(nights));
                 }
 
-                results.add(new AccommodationSearchResponse(
+                allResults.add(new AccommodationSearchResponse(
                         accommodation.getId(),
                         accommodation.getHostId(),
                         accommodation.getName(),
@@ -158,7 +159,13 @@ public class AccommodationService {
             }
         }
 
-        return results;
+        int start = page * size;
+        int end = Math.min(start + size, allResults.size());
+        List<AccommodationSearchResponse> pageContent = start >= allResults.size()
+                ? List.of()
+                : allResults.subList(start, end);
+
+        return new PageImpl<>(pageContent, PageRequest.of(page, size), allResults.size());
     }
 
     private Accommodation findAccommodationOrThrow(UUID id) {

@@ -43,12 +43,14 @@ public class AccommodationController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<AccommodationSearchResponse>> search(
+    public ResponseEntity<Page<AccommodationSearchResponse>> search(
             @RequestParam String location,
             @RequestParam int guests,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(accommodationService.search(location, guests, startDate, endDate));
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok(accommodationService.search(location, guests, startDate, endDate, page, size));
     }
 
     @GetMapping("/{id}")

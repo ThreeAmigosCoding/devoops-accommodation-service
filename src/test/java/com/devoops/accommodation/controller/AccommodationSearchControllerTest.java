@@ -15,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -65,13 +67,14 @@ class AccommodationSearchControllerTest {
     class SearchEndpoint {
 
         @Test
-        @DisplayName("With valid parameters returns 200 with results")
+        @DisplayName("With valid parameters returns 200 with paginated results")
         void search_WithValidParams_Returns200WithResults() throws Exception {
             var startDate = LocalDate.of(2026, 3, 5);
             var endDate = LocalDate.of(2026, 3, 10);
+            var searchResponse = createSearchResponse();
 
-            when(accommodationService.search("Belgrade", 2, startDate, endDate))
-                    .thenReturn(List.of(createSearchResponse()));
+            when(accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12))
+                    .thenReturn(new PageImpl<>(List.of(searchResponse), PageRequest.of(0, 12), 1));
 
             mockMvc.perform(get("/api/accommodation/search")
                             .param("location", "Belgrade")
@@ -79,21 +82,24 @@ class AccommodationSearchControllerTest {
                             .param("startDate", "2026-03-05")
                             .param("endDate", "2026-03-10"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].id").value(ACCOMMODATION_ID.toString()))
-                    .andExpect(jsonPath("$[0].name").value("Test Apartment"))
-                    .andExpect(jsonPath("$[0].totalPrice").value(500.00))
-                    .andExpect(jsonPath("$[0].unitPrice").value(50.00))
-                    .andExpect(jsonPath("$[0].numberOfNights").value(5));
+                    .andExpect(jsonPath("$.content[0].id").value(ACCOMMODATION_ID.toString()))
+                    .andExpect(jsonPath("$.content[0].name").value("Test Apartment"))
+                    .andExpect(jsonPath("$.content[0].totalPrice").value(500.00))
+                    .andExpect(jsonPath("$.content[0].unitPrice").value(50.00))
+                    .andExpect(jsonPath("$.content[0].numberOfNights").value(5))
+                    .andExpect(jsonPath("$.totalElements").value(1))
+                    .andExpect(jsonPath("$.number").value(0))
+                    .andExpect(jsonPath("$.last").value(true));
         }
 
         @Test
-        @DisplayName("With no results returns 200 with empty list")
-        void search_WithNoResults_Returns200WithEmptyList() throws Exception {
+        @DisplayName("With no results returns 200 with empty page")
+        void search_WithNoResults_Returns200WithEmptyPage() throws Exception {
             var startDate = LocalDate.of(2026, 3, 5);
             var endDate = LocalDate.of(2026, 3, 10);
 
-            when(accommodationService.search("Nowhere", 2, startDate, endDate))
-                    .thenReturn(List.of());
+            when(accommodationService.search("Nowhere", 2, startDate, endDate, 0, 12))
+                    .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 12), 0));
 
             mockMvc.perform(get("/api/accommodation/search")
                             .param("location", "Nowhere")
@@ -101,8 +107,9 @@ class AccommodationSearchControllerTest {
                             .param("startDate", "2026-03-05")
                             .param("endDate", "2026-03-10"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isArray())
-                    .andExpect(jsonPath("$").isEmpty());
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content").isEmpty())
+                    .andExpect(jsonPath("$.totalElements").value(0));
         }
 
         @Test
@@ -111,8 +118,8 @@ class AccommodationSearchControllerTest {
             var startDate = LocalDate.of(2026, 3, 5);
             var endDate = LocalDate.of(2026, 3, 10);
 
-            when(accommodationService.search("Belgrade", 2, startDate, endDate))
-                    .thenReturn(List.of());
+            when(accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12))
+                    .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 12), 0));
 
             mockMvc.perform(get("/api/accommodation/search")
                             .param("location", "Belgrade")
@@ -152,12 +159,12 @@ class AccommodationSearchControllerTest {
         }
 
         @Test
-        @DisplayName("With invalid date returns IllegalArgumentException")
+        @DisplayName("With invalid date returns 400")
         void search_WithInvalidDates_Returns400() throws Exception {
             var startDate = LocalDate.of(2026, 3, 10);
             var endDate = LocalDate.of(2026, 3, 5);
 
-            when(accommodationService.search("Belgrade", 2, startDate, endDate))
+            when(accommodationService.search("Belgrade", 2, startDate, endDate, 0, 12))
                     .thenThrow(new IllegalArgumentException("End date must be after start date"));
 
             mockMvc.perform(get("/api/accommodation/search")
@@ -166,6 +173,27 @@ class AccommodationSearchControllerTest {
                             .param("startDate", "2026-03-10")
                             .param("endDate", "2026-03-05"))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("With custom page and size parameters uses them")
+        void search_WithCustomPageAndSize_UsesThem() throws Exception {
+            var startDate = LocalDate.of(2026, 3, 5);
+            var endDate = LocalDate.of(2026, 3, 10);
+
+            when(accommodationService.search("Belgrade", 2, startDate, endDate, 1, 6))
+                    .thenReturn(new PageImpl<>(List.of(), PageRequest.of(1, 6), 0));
+
+            mockMvc.perform(get("/api/accommodation/search")
+                            .param("location", "Belgrade")
+                            .param("guests", "2")
+                            .param("startDate", "2026-03-05")
+                            .param("endDate", "2026-03-10")
+                            .param("page", "1")
+                            .param("size", "6"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.number").value(1))
+                    .andExpect(jsonPath("$.size").value(6));
         }
     }
 }
