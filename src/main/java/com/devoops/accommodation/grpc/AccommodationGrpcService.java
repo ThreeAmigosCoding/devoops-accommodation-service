@@ -128,6 +128,36 @@ public class AccommodationGrpcService extends AccommodationInternalServiceGrpc.A
     }
 
     @Override
+    public void getAccommodationSummary(AccommodationSummaryRequest request,
+                                        StreamObserver<AccommodationSummaryResponse> responseObserver) {
+        log.debug("gRPC: Getting accommodation summary for: {}", request.getAccommodationId());
+
+        try {
+            UUID accommodationId = UUID.fromString(request.getAccommodationId());
+            accommodationRepository.findById(accommodationId).ifPresentOrElse(
+                    accommodation -> {
+                        AccommodationSummaryResponse response = AccommodationSummaryResponse.newBuilder()
+                                .setFound(true)
+                                .setAccommodationName(accommodation.getName())
+                                .setHostId(accommodation.getHostId().toString())
+                                .build();
+                        responseObserver.onNext(response);
+                        responseObserver.onCompleted();
+                    },
+                    () -> {
+                        log.debug("Accommodation not found: {}", accommodationId);
+                        responseObserver.onNext(AccommodationSummaryResponse.newBuilder().setFound(false).build());
+                        responseObserver.onCompleted();
+                    }
+            );
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid accommodation ID format: {}", request.getAccommodationId());
+            responseObserver.onNext(AccommodationSummaryResponse.newBuilder().setFound(false).build());
+            responseObserver.onCompleted();
+        }
+    }
+
+    @Override
     public void deleteAccommodationsByHost(DeleteByHostRequest request,
                                            StreamObserver<DeleteByHostResponse> responseObserver) {
         log.debug("gRPC: Deleting all accommodations for host: {}", request.getHostId());
